@@ -40,5 +40,11 @@ public class CategoriaResource {
 
         return ResponseEntity.created(uri).body(categoriaSalva); //Mostrando o Json de saida no Bodystatus
     }
+t
+
+    @GetMapping("/{codigo}")
+    public Categoria buscarPeloCodigo(@PathVariable Long codigo){
+        return categoriaRepository.findOne(codigo);
+    }
 
 }
