@@ -29,16 +29,16 @@ public class CategoriaResource {
     }
 
     @PostMapping
+   // @ResponseStatus(HttpStatus.CREATED) -> Anotação Criada caso não seja preciso retornar um ResponseEntity
     public ResponseEntity <Categoria> criar(@RequestBody Categoria categoria, HttpServletResponse response){
-       Categoria categoriaSalva =  categoriaRepository.save(categoria);
-       //Atraves da Classe ServletUriComponentsBuilder eu vou pegar a partir da requisição atual que foi /categorias adicionar o codigo
+        Categoria categoriaSalva =  categoriaRepository.save(categoria);
+        //Atraves da Classe ServletUriComponentsBuilder eu vou pegar a partir da requisição atual que foi /categorias adicionar o codigo
         //e adicionar esse codigo na Uri, setar o header com está uri
         URI uri = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{codigo}")
                 .buildAndExpand(categoriaSalva.getCodigo()).toUri();
         response.setHeader("Location", uri.toASCIIString());
 
         return ResponseEntity.created(uri).body(categoriaSalva); //Mostrando o Json de saida no Bodystatus
-
     }
 
 }
