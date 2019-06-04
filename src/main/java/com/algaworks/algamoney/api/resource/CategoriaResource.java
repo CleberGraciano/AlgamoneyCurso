@@ -1,15 +1,17 @@
 package com.algaworks.algamoney.api.resource;
 
+import com.algaworks.algamoney.api.event.RecursoCriadoEvent;
 import com.algaworks.algamoney.api.model.Categoria;
 import com.algaworks.algamoney.api.repository.CategoriaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.net.URI;
 import java.util.List;
 
@@ -20,30 +22,31 @@ public class CategoriaResource {
     @Autowired
     private CategoriaRepository categoriaRepository;
 
-    @GetMapping
-    public  List<Categoria> listar(){
+    @Autowired
+    ApplicationEventPublisher publisher;
 
-        return  categoriaRepository.findAll();
-        // -Metodo errado pois fica confuso return !categorias.isEmpty() ? ResponseEntity.ok(categorias) : ResponseEntity.noContent().build();
+    @GetMapping
+    public List<Categoria> listar() {
+
+        return categoriaRepository.findAll();
+        // Metodo errado pois fica confuso return !categorias.isEmpty() ? ResponseEntity.ok(categorias) : ResponseEntity.noContent().build();
 
     }
 
     @PostMapping
-   // @ResponseStatus(HttpStatus.CREATED) -> Anotação Criada caso não seja preciso retornar um ResponseEntity
-    public ResponseEntity <Categoria> criar(@RequestBody Categoria categoria, HttpServletResponse response){
-        Categoria categoriaSalva =  categoriaRepository.save(categoria);
-        //Atraves da Classe ServletUriComponentsBuilder eu vou pegar a partir da requisição atual que foi /categorias adicionar o codigo
-        //e adicionar esse codigo na Uri, setar o header com está uri
-        URI uri = ServletUriComponentsBuilder.fromCurrentRequestUri().path("/{codigo}")
-                .buildAndExpand(categoriaSalva.getCodigo()).toUri();
-        response.setHeader("Location", uri.toASCIIString());
+    // @ResponseStatus(HttpStatus.CREATED) -> Anotação Criada caso não seja preciso retornar um ResponseEntity
+    // @Valid é usado para validar se ao mandar algo para o banco ele possui uma anotação notnull no campo valida campos vazios para isso precisa ter a anotação no parametro no model @NotNull
+    public ResponseEntity<Categoria> criar(@Valid @RequestBody Categoria categoria, HttpServletResponse response) {
 
-        return ResponseEntity.created(uri).body(categoriaSalva); //Mostrando o Json de saida no Bodystatus
+        Categoria categoriaSalva = categoriaRepository.save(categoria);
+        publisher.publishEvent(new RecursoCriadoEvent(this, response, categoriaSalva.getCodigo()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(categoriaSalva); //Mostrando o Json de saida no Bodystatus
     }
 
     @GetMapping("/{codigo}")
-    public Categoria buscarPeloCodigo(@PathVariable Long codigo){
-        return categoriaRepository.findOne(codigo);
+    public ResponseEntity<Categoria> buscarPeloCodigo(@PathVariable Long codigo) {
+        Categoria cat = categoriaRepository.findOne(codigo);
+        //Responsavél por verivicar se ao buscar um registro ele existe, e retorna o registro, caso contrario muda o codigo de resposta para 404 que não existe
+        return cat != null ? ResponseEntity.ok(cat) : ResponseEntity.notFound().build();
     }
-
 }
